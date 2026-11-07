@@ -94,6 +94,20 @@ class HyundaiKiaCarClimateControlSwitch(HyundaiKiaConnectEntity, ClimateEntity):
         )
         self._attr_unique_id = f"{DOMAIN}_{vehicle.id}_climate_control"
 
+        # Seed the request from the climate preset where it defines a
+        # value; fall back to the car's current state otherwise.
+        preset = None
+        preset_fn = getattr(coordinator, "climate_preset_options", None)
+        if callable(preset_fn):
+            try:
+                preset = preset_fn(vehicle.id)
+            except Exception:  # noqa: BLE001 - preset is best-effort seeding
+                preset = None
+
+        def _preset(name: str, fallback: Any) -> Any:
+            value = getattr(preset, name, None) if preset is not None else None
+            return value if isinstance(value, (bool, int, float)) else fallback
+
         # set the Climate Request to the current actual state of the car
         #
         # `climate` is deliberately NOT seeded from air_control_is_on: this
@@ -103,10 +117,20 @@ class HyundaiKiaCarClimateControlSwitch(HyundaiKiaConnectEntity, ClimateEntity):
         # when you want to start it -- we sent a start request carrying
         # airCtrl=0 and the car correctly did nothing.
         self.climate_config = ClimateRequestOptions(
-            set_temp=self.vehicle.air_temperature,
+            set_temp=self.vehicle.air_temperature
+            if self.vehicle.air_temperature is not None
+            else _preset("set_temp", None),
             climate=True,
-            heating=self.get_internal_heat_int_for_climate_request(),
-            defrost=self.vehicle.defrost_is_on,
+            heating=_preset(
+                "heating", self.get_internal_heat_int_for_climate_request()
+            ),
+            defrost=_preset("defrost", self.vehicle.defrost_is_on),
+            duration=_preset("duration", None),
+            steering_wheel=_preset("steering_wheel", None),
+            front_left_seat=_preset("front_left_seat", None),
+            front_right_seat=_preset("front_right_seat", None),
+            rear_left_seat=_preset("rear_left_seat", None),
+            rear_right_seat=_preset("rear_right_seat", None),
         )
 
     @property

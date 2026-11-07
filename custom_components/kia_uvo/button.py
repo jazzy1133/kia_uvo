@@ -37,6 +37,13 @@ BUTTON_DESCRIPTIONS: Final[tuple[HyundaiKiaButtonDescription, ...]] = (
         press_action="async_force_refresh_vehicle",
     ),
     HyundaiKiaButtonDescription(
+        key="winter_start",
+        translation_key="winter_start",
+        icon="mdi:snowflake-thermometer",
+        press_action="async_start_climate_preset",
+        exists_fn=lambda vehicle: vehicle.air_control_is_on is not None,
+    ),
+    HyundaiKiaButtonDescription(
         key="start_hazard_lights",
         translation_key="start_hazard_lights",
         icon="mdi:hazard-lights",

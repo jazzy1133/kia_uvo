@@ -70,6 +70,21 @@
       "invalid_credentials": "Nombre de usuario o contraseña no válidos",
       "unknown": "Error inesperado",
       "password_truncated_hint": "Error de autentificación. Si tu contraseña tiene más de 20 caracteres, la cuenta puede aceptar solo los primeros 20 (observado en cuentas europeas de Hyundai/Kia/Genesis cuando la contraseña se configuró en un teléfono). Prueba los primeros 20 caracteres."
+    },
+    "options": {
+      "init": {
+        "data": {
+          "climate_preset_duration": "Climate preset duration (minutes)",
+          "climate_preset_temperature": "Climate preset temperature (vehicle's unit)",
+          "climate_preset_defrost": "Climate preset defrost",
+          "climate_preset_heating": "Climate preset heating (0-4)",
+          "climate_preset_steering_wheel": "Climate preset steering wheel heat (0-2)",
+          "climate_preset_front_left_seat": "Climate preset front left seat (0-8)",
+          "climate_preset_front_right_seat": "Climate preset front right seat (0-8)",
+          "climate_preset_rear_left_seat": "Climate preset rear left seat (0-8)",
+          "climate_preset_rear_right_seat": "Climate preset rear right seat (0-8)"
+        }
+      }
     }
   },
   "options": {
@@ -883,6 +898,9 @@
       },
       "capture_svm_image": {
         "name": "Capturar Imagen SVM"
+      },
+      "winter_start": {
+        "name": "Winter Start"
       }
     },
     "image": {

@@ -38,6 +38,7 @@ from hyundai_kia_connect_api.const import WINDOW_STATE
 from hyundai_kia_connect_api.exceptions import (
     APIError,
     AuthenticationError,
+    AuthenticationInvalidCredentialsError,
     RateLimitingError,
     UnsupportedControlError,
 )
@@ -45,12 +46,29 @@ from hyundai_kia_connect_api.svm_image import render_views
 
 from .const import (
     CONF_BRAND,
+    CONF_CLIMATE_PRESET_DEFROST,
+    CONF_CLIMATE_PRESET_DURATION,
+    CONF_CLIMATE_PRESET_FRONT_LEFT_SEAT,
+    CONF_CLIMATE_PRESET_FRONT_RIGHT_SEAT,
+    CONF_CLIMATE_PRESET_HEATING,
+    CONF_CLIMATE_PRESET_REAR_LEFT_SEAT,
+    CONF_CLIMATE_PRESET_REAR_RIGHT_SEAT,
+    CONF_CLIMATE_PRESET_STEERING_WHEEL,
+    CONF_CLIMATE_PRESET_TEMPERATURE,
     CONF_ENABLE_GEOLOCATION_ENTITY,
     CONF_FORCE_REFRESH_INTERVAL,
     CONF_NO_FORCE_REFRESH_HOUR_FINISH,
     CONF_NO_FORCE_REFRESH_HOUR_START,
     CONF_TOKEN,
     CONF_USE_EMAIL_WITH_GEOCODE_API,
+    DEFAULT_CLIMATE_PRESET_DEFROST,
+    DEFAULT_CLIMATE_PRESET_DURATION,
+    DEFAULT_CLIMATE_PRESET_FRONT_SEAT,
+    DEFAULT_CLIMATE_PRESET_HEATING,
+    DEFAULT_CLIMATE_PRESET_REAR_SEAT,
+    DEFAULT_CLIMATE_PRESET_STEERING_WHEEL,
+    DEFAULT_CLIMATE_PRESET_TEMPERATURE_C,
+    DEFAULT_CLIMATE_PRESET_TEMPERATURE_F,
     DEFAULT_ENABLE_GEOLOCATION_ENTITY,
     DEFAULT_FORCE_REFRESH_INTERVAL,
     DEFAULT_NO_FORCE_REFRESH_HOUR_FINISH,
@@ -92,6 +110,10 @@ class HyundaiKiaConnectDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any
         self._failed_vehicles: set[str] = set()
         # Consecutive failed polls per vehicle (drives the "skip it" hint).
         self._vehicle_failures: dict[str, int] = {}
+        # Consecutive token-check auth failures; the first is treated as
+        # transient (a server-deleted token), later ones prompt re-auth.
+        self._consecutive_auth_failures: int = 0
+        self._config_options: dict[str, Any] = dict(config_entry.options)
 
         self.vehicle_manager = VehicleManager(
             region=config_entry.data[CONF_REGION],
@@ -167,7 +189,22 @@ class HyundaiKiaConnectDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any
         try:
             await self.async_check_and_refresh_token()
         except AuthenticationError as AuthError:
-            raise ConfigEntryAuthFailed(AuthError) from AuthError
+            # A token the server deleted (CA 7602) surfaces here as an
+            # AuthenticationError even though the stored credentials are
+            # fine and a silent re-login can repair it. Treat the first
+            # failure as transient; only bad credentials, or a second
+            # consecutive failure, earn the re-auth prompt.
+            if isinstance(AuthError, AuthenticationInvalidCredentialsError):
+                raise ConfigEntryAuthFailed(AuthError) from AuthError
+            self._consecutive_auth_failures = (
+                getattr(self, "_consecutive_auth_failures", 0) + 1
+            )
+            if self._consecutive_auth_failures > 1:
+                raise ConfigEntryAuthFailed(AuthError) from AuthError
+            raise UpdateFailed(
+                f"Authentication failed, will retry in 60s: {AuthError}",
+                retry_after=60,
+            ) from AuthError
         except Exception as err:
             # Transient API errors (e.g. DeviceIDError, ReadTimeoutError) from
             # Kia's EU backend must be surfaced as UpdateFailed rather than
@@ -183,6 +220,7 @@ class HyundaiKiaConnectDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any
                 f"Token refresh failed, will retry in 60s: {err}",
                 retry_after=60,
             ) from err
+        self._consecutive_auth_failures = 0
         current_hour = dt_util.now().hour
 
         in_force_window = (
@@ -537,9 +575,69 @@ class HyundaiKiaConnectDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any
             "close charge port",
         )
 
+    def climate_preset_options(self, vehicle_id: str) -> ClimateRequestOptions:
+        """Build start-climate options from the climate preset options."""
+        options = getattr(self, "_config_options", {}) or {}
+        vehicle = self.vehicle_manager.vehicles.get(vehicle_id)
+        unit = getattr(vehicle, "_air_temperature_unit", None)
+        is_fahrenheit = str(unit) in ("F", "°F") or "Fahrenheit" in str(unit)
+        temperature = options.get(CONF_CLIMATE_PRESET_TEMPERATURE)
+        if temperature is None:
+            temperature = (
+                DEFAULT_CLIMATE_PRESET_TEMPERATURE_F
+                if is_fahrenheit
+                else DEFAULT_CLIMATE_PRESET_TEMPERATURE_C
+            )
+        temperature = float(temperature)
+        if is_fahrenheit and temperature < 50:
+            # The stored value is on a Celsius scale; convert, capped at max.
+            temperature = min(
+                DEFAULT_CLIMATE_PRESET_TEMPERATURE_F, temperature * 9 / 5 + 32
+            )
+
+        def _int(key: str, default: int) -> int:
+            value = options.get(key)
+            return default if value is None else int(value)
+
+        rear_left = _int(
+            CONF_CLIMATE_PRESET_REAR_LEFT_SEAT, DEFAULT_CLIMATE_PRESET_REAR_SEAT
+        )
+        rear_right = _int(
+            CONF_CLIMATE_PRESET_REAR_RIGHT_SEAT, DEFAULT_CLIMATE_PRESET_REAR_SEAT
+        )
+        return ClimateRequestOptions(
+            duration=_int(
+                CONF_CLIMATE_PRESET_DURATION, DEFAULT_CLIMATE_PRESET_DURATION
+            ),
+            set_temp=temperature,
+            climate=True,
+            defrost=bool(
+                options.get(CONF_CLIMATE_PRESET_DEFROST, DEFAULT_CLIMATE_PRESET_DEFROST)
+            ),
+            heating=_int(CONF_CLIMATE_PRESET_HEATING, DEFAULT_CLIMATE_PRESET_HEATING),
+            steering_wheel=_int(
+                CONF_CLIMATE_PRESET_STEERING_WHEEL,
+                DEFAULT_CLIMATE_PRESET_STEERING_WHEEL,
+            ),
+            front_left_seat=_int(
+                CONF_CLIMATE_PRESET_FRONT_LEFT_SEAT, DEFAULT_CLIMATE_PRESET_FRONT_SEAT
+            ),
+            front_right_seat=_int(
+                CONF_CLIMATE_PRESET_FRONT_RIGHT_SEAT, DEFAULT_CLIMATE_PRESET_FRONT_SEAT
+            ),
+            rear_left_seat=rear_left or None,
+            rear_right_seat=rear_right or None,
+        )
+
+    async def async_start_climate_preset(self, vehicle_id: str) -> None:
+        """Start climate with the configured climate preset."""
+        await self.async_start_climate(
+            vehicle_id, self.climate_preset_options(vehicle_id)
+        )
+
     async def async_start_climate_default(self, vehicle_id: str) -> None:
-        """Start climate with default options (API fills sensible defaults)."""
-        await self.async_start_climate(vehicle_id, ClimateRequestOptions())
+        """Start climate with the configured climate preset."""
+        await self.async_start_climate_preset(vehicle_id)
 
     async def async_start_climate(
         self, vehicle_id: str, climate_options: ClimateRequestOptions

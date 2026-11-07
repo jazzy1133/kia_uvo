@@ -122,6 +122,32 @@ def async_setup_services(hass: HomeAssistant) -> bool:
             rear_right_seat=rear_right_seat,
             steering_wheel=steering_wheel,
         )
+        # Fields the caller left out fall back to the climate preset
+        # instead of the library's bare defaults.
+        preset_fn = getattr(coordinator, "climate_preset_options", None)
+        if callable(preset_fn):
+            try:
+                preset = preset_fn(vehicle_id)
+            except Exception:  # noqa: BLE001 - preset fallback is best-effort
+                preset = None
+            if preset is not None:
+                for field in (
+                    "duration",
+                    "set_temp",
+                    "climate",
+                    "heating",
+                    "defrost",
+                    "front_left_seat",
+                    "front_right_seat",
+                    "rear_left_seat",
+                    "rear_right_seat",
+                    "steering_wheel",
+                ):
+                    preset_value = getattr(preset, field, None)
+                    if getattr(climate_request_options, field) is None and isinstance(
+                        preset_value, (bool, int, float)
+                    ):
+                        setattr(climate_request_options, field, preset_value)
         await coordinator.async_start_climate(vehicle_id, climate_request_options)
 
     async def async_handle_stop_climate(call: ServiceCall) -> None:

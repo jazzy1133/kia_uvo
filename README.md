@@ -111,8 +111,19 @@ After installation, go to **Settings** → **Devices & Services** → **Integrat
 
 - Climate Control (temperature, mode, defrost)
 
+#### Climate preset
+
+The integration options include a climate preset (duration, temperature,
+defrost, heating, steering wheel and seat levels). It defaults to a winter
+start: 10 minutes, maximum heat (30 °C, or 82 °F on Fahrenheit vehicles),
+defrost on, steering wheel and front seats on high heat. The preset is used
+when the climate entity is turned on, when the `start_climate` service is
+called without values, and by the Winter Start button — no YAML script is
+needed to make those settings the default.
+
 ### Buttons
 
+- Winter Start (starts climate with the climate preset above)
 - Force Refresh
 - Start Hazard Lights / Start Hazard Lights and Horn
 - Start Valet Mode / Stop Valet Mode

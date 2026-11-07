@@ -70,6 +70,21 @@
       "invalid_credentials": "Érvénytelen felhasználónév vagy jelszó",
       "unknown": "Váratlan hiba",
       "password_truncated_hint": "Authentication failed. If your password is longer than 20 characters, the account may only accept the first 20 of them (observed on European Hyundai/Kia/Genesis accounts when the password was set on a mobile phone). Try the first 20 characters of your password."
+    },
+    "options": {
+      "init": {
+        "data": {
+          "climate_preset_duration": "Climate preset duration (minutes)",
+          "climate_preset_temperature": "Climate preset temperature (vehicle's unit)",
+          "climate_preset_defrost": "Climate preset defrost",
+          "climate_preset_heating": "Climate preset heating (0-4)",
+          "climate_preset_steering_wheel": "Climate preset steering wheel heat (0-2)",
+          "climate_preset_front_left_seat": "Climate preset front left seat (0-8)",
+          "climate_preset_front_right_seat": "Climate preset front right seat (0-8)",
+          "climate_preset_rear_left_seat": "Climate preset rear left seat (0-8)",
+          "climate_preset_rear_right_seat": "Climate preset rear right seat (0-8)"
+        }
+      }
     }
   },
   "options": {
@@ -883,6 +898,9 @@
       },
       "capture_svm_image": {
         "name": "SVM kép készítése"
+      },
+      "winter_start": {
+        "name": "Winter Start"
       }
     },
     "image": {

@@ -27,12 +27,28 @@ import voluptuous as vol
 from .const import (
     BRANDS,
     CONF_BRAND,
+    CONF_CLIMATE_PRESET_DEFROST,
+    CONF_CLIMATE_PRESET_DURATION,
+    CONF_CLIMATE_PRESET_FRONT_LEFT_SEAT,
+    CONF_CLIMATE_PRESET_FRONT_RIGHT_SEAT,
+    CONF_CLIMATE_PRESET_HEATING,
+    CONF_CLIMATE_PRESET_REAR_LEFT_SEAT,
+    CONF_CLIMATE_PRESET_REAR_RIGHT_SEAT,
+    CONF_CLIMATE_PRESET_STEERING_WHEEL,
+    CONF_CLIMATE_PRESET_TEMPERATURE,
     CONF_ENABLE_GEOLOCATION_ENTITY,
     CONF_FORCE_REFRESH_INTERVAL,
     CONF_NO_FORCE_REFRESH_HOUR_FINISH,
     CONF_NO_FORCE_REFRESH_HOUR_START,
     CONF_TOKEN,
     CONF_USE_EMAIL_WITH_GEOCODE_API,
+    DEFAULT_CLIMATE_PRESET_DEFROST,
+    DEFAULT_CLIMATE_PRESET_DURATION,
+    DEFAULT_CLIMATE_PRESET_FRONT_SEAT,
+    DEFAULT_CLIMATE_PRESET_HEATING,
+    DEFAULT_CLIMATE_PRESET_REAR_SEAT,
+    DEFAULT_CLIMATE_PRESET_STEERING_WHEEL,
+    DEFAULT_CLIMATE_PRESET_TEMPERATURE_C,
     DEFAULT_ENABLE_GEOLOCATION_ENTITY,
     DEFAULT_FORCE_REFRESH_INTERVAL,
     DEFAULT_NO_FORCE_REFRESH_HOUR_FINISH,
@@ -143,6 +159,42 @@ OPTIONS_SCHEMA = vol.Schema(
             CONF_USE_EMAIL_WITH_GEOCODE_API,
             default=DEFAULT_USE_EMAIL_WITH_GEOCODE_API,
         ): bool,
+        vol.Optional(
+            CONF_CLIMATE_PRESET_DURATION,
+            default=DEFAULT_CLIMATE_PRESET_DURATION,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_TEMPERATURE,
+            default=DEFAULT_CLIMATE_PRESET_TEMPERATURE_C,
+        ): vol.All(vol.Coerce(float), vol.Range(min=14, max=86)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_DEFROST,
+            default=DEFAULT_CLIMATE_PRESET_DEFROST,
+        ): bool,
+        vol.Optional(
+            CONF_CLIMATE_PRESET_HEATING,
+            default=DEFAULT_CLIMATE_PRESET_HEATING,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=4)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_STEERING_WHEEL,
+            default=DEFAULT_CLIMATE_PRESET_STEERING_WHEEL,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=2)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_FRONT_LEFT_SEAT,
+            default=DEFAULT_CLIMATE_PRESET_FRONT_SEAT,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=8)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_FRONT_RIGHT_SEAT,
+            default=DEFAULT_CLIMATE_PRESET_FRONT_SEAT,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=8)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_REAR_LEFT_SEAT,
+            default=DEFAULT_CLIMATE_PRESET_REAR_SEAT,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=8)),
+        vol.Optional(
+            CONF_CLIMATE_PRESET_REAR_RIGHT_SEAT,
+            default=DEFAULT_CLIMATE_PRESET_REAR_SEAT,
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=8)),
     }
 )
 
